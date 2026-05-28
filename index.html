@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Beethoven IX — Symphonic Galaxy v8 — Pivot Tilt Controls</title>
+<title>Beethoven IX — Symphonic Galaxy v9 — Corrected Left Stick</title>
 <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
 <style>
 html,body{margin:0;background:#02020a;color:white;font-family:Inter,Arial,Helvetica,sans-serif;overflow:hidden}
@@ -20,7 +20,7 @@ button{background:rgba(255,255,255,.09);color:white;border:1px solid rgba(255,25
 <div id="hud">
 <h1>BEETHOVEN IX — SYMPHONIC GALAXY v5</h1>
 <p>Built from your MIDI/MusicXML-derived dataset: 134,329 notes condensed into a VR score-landscape. Spiral=time, height=pitch, glow=velocity/density, turbulence=harmonic pressure, choir=surrounding halo.</p>
-<p><b>Quest controls:</b> left thumbstick = fly forward/back + strafe left/right. Right thumbstick left/right = pivot left/right. Right thumbstick forward/back = tilt up/down. Use buttons below or controller rays.</p>
+<p><b>Quest controls:</b> left thumbstick = corrected fly: forward/back and left/right match stick direction. Right thumbstick left/right = pivot left/right. Right thumbstick forward/back = tilt up/down. Use buttons below or controller rays.</p>
 <button onclick="window.toggleAuto()">Play / stop score flight</button><button onclick="window.jumpFinale()">Finale</button><button onclick="window.jumpAdagio()">Adagio</button><button onclick="window.toggleOde()">Ode path</button>
 <div id="meter"><div id="bar"></div></div><div id="readout">loading score world...</div>
 </div>
@@ -325,8 +325,10 @@ AFRAME.registerComponent('quest-fly',{
         if(this.fwd.lengthSq()<.0001) this.fwd.set(0,0,-1);
         this.fwd.normalize();
         this.side.crossVectors(this.fwd,this.up).normalize();
-        this.tmp.copy(this.fwd).multiplyScalar(-y*dt*this.speed);
-        this.tmp.add(this.side.clone().multiplyScalar(x*dt*this.speed));
+        // Reversed/corrected Quest left stick mapping:
+        // forward = forward, backward = backward, left = left, right = right.
+        this.tmp.copy(this.fwd).multiplyScalar(y*dt*this.speed);
+        this.tmp.add(this.side.clone().multiplyScalar(-x*dt*this.speed));
         rig.position.add(this.tmp);
         leftActive=true;
       }
