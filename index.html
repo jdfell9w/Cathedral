@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Beethoven IX — Symphonic Galaxy v7 — Huge Outer Stained Glass Ring</title>
+<title>Beethoven IX — Symphonic Galaxy v8 — Pivot Tilt Controls</title>
 <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
 <style>
 html,body{margin:0;background:#02020a;color:white;font-family:Inter,Arial,Helvetica,sans-serif;overflow:hidden}
@@ -20,7 +20,7 @@ button{background:rgba(255,255,255,.09);color:white;border:1px solid rgba(255,25
 <div id="hud">
 <h1>BEETHOVEN IX — SYMPHONIC GALAXY v5</h1>
 <p>Built from your MIDI/MusicXML-derived dataset: 134,329 notes condensed into a VR score-landscape. Spiral=time, height=pitch, glow=velocity/density, turbulence=harmonic pressure, choir=surrounding halo.</p>
-<p><b>Quest controls:</b> left thumbstick = fly forward/back + strafe left/right. Right thumbstick left/right = scrub score. Right thumbstick forward/back = zoom in/out toward the symphonic center. Use buttons below or controller rays.</p>
+<p><b>Quest controls:</b> left thumbstick = fly forward/back + strafe left/right. Right thumbstick left/right = pivot left/right. Right thumbstick forward/back = tilt up/down. Use buttons below or controller rays.</p>
 <button onclick="window.toggleAuto()">Play / stop score flight</button><button onclick="window.jumpFinale()">Finale</button><button onclick="window.jumpAdagio()">Adagio</button><button onclick="window.toggleOde()">Ode path</button>
 <div id="meter"><div id="bar"></div></div><div id="readout">loading score world...</div>
 </div>
@@ -244,7 +244,7 @@ AFRAME.registerComponent('quest-fly',{
     this.lastPlayToggle=0;
 
     const hud=document.querySelector('#readout');
-    if(hud){ hud.textContent='VR controls v5 ready — 45° overview, left=flying, right X=scrub, right Y=zoom'; }
+    if(hud){ hud.textContent='VR controls v8 ready — left=flying, right X=pivot, right Y=tilt'; }
   },
 
   bestStickFromAxes(gp, hand){
@@ -332,25 +332,25 @@ AFRAME.registerComponent('quest-fly',{
       }
 
       if(hand==='right'){
-        // Right thumbstick left/right: manual override of score/progress position.
-        if(x && window.adjustScoreProgress){
-          window.adjustScoreProgress(x*dt*0.00016);
+        // Right thumbstick left/right: pivot/yaw the whole rig manually.
+        // Push right = pivot right; push left = pivot left.
+        if(x){
+          rig.rotation.y -= x * dt * 0.00115;
           rightActive=true;
         }
-        // Right thumbstick forward/back: zoom in/out along the current headset gaze.
-        // Push forward = move into the symphonic center; pull back = zoom out.
+
+        // Right thumbstick forward/back: tilt/pitch the viewing rig manually.
+        // Push forward = tilt downward toward the symphonic center; pull back = tilt upward.
         if(y){
-          cam.getWorldDirection(this.fwd);
-          if(this.fwd.lengthSq()<.0001) this.fwd.set(0,-0.65,-1).normalize();
-          this.tmp.copy(this.fwd).multiplyScalar(-y*dt*this.zoomSpeed);
-          rig.position.add(this.tmp);
+          rig.rotation.x += y * dt * 0.0009;
+          rig.rotation.x = Math.max(-1.45, Math.min(0.55, rig.rotation.x));
           rightActive=true;
         }
       }
     }
 
     if((leftActive||rightActive) && t-this.lastReport>250){
-      window.lastQuestInput=(leftActive?'LEFT=fly ':'')+(rightActive?'RIGHT=scrub/zoom ':'')+debugParts.join(' | ');
+      window.lastQuestInput=(leftActive?'LEFT=fly ':'')+(rightActive?'RIGHT=pivot/tilt ':'')+debugParts.join(' | ');
       const readout=document.querySelector('#readout');
       if(readout){ readout.textContent=window.lastQuestInput; }
       this.lastReport=t;
@@ -367,7 +367,7 @@ AFRAME.registerComponent('beethoven-ix-world',{
     window.jumpAdagio=()=>{this.manualT=1980; this.start=performance.now()-1980*1000/40; this.auto=false;};
     window.toggleOde=()=>{this.odeVisible=!this.odeVisible; this.odeGroup.visible=this.odeVisible;};
     window.adjustScoreProgress=(du)=>{ this.auto=false; this.manualT=clamp((this.currentT||this.manualT||0)+du*SCORE.duration,0,SCORE.duration); };
-    document.querySelector('#readout').textContent='score world v5 ready — 45° downward view, score-driven galaxy, right Y zooms';
+    document.querySelector('#readout').textContent='score world v8 ready — 45° downward view, right stick pivots/tilts';
   },
   makeStarNebula(){
     const geom=new THREE.BufferGeometry(); const N=2600, arr=new Float32Array(N*3), col=new Float32Array(N*3), size=new Float32Array(N);
