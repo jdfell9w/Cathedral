@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Beethoven IX — Symphonic Galaxy v9 — Corrected Left Stick</title>
+<title>Beethoven IX — Symphonic Galaxy v10 — Emergent Symphonic Ecology</title>
 <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
 <style>
 html,body{margin:0;background:#02020a;color:white;font-family:Inter,Arial,Helvetica,sans-serif;overflow:hidden}
@@ -565,6 +565,272 @@ AFRAME.registerComponent('beethoven-ix-world',{
 window.addEventListener('load', () => {
   console.log('Beethoven IX v6 stained glass ring loaded. Expected paths: panels/panel_01_struggle.png ... panels/panel_09_transcendence.png');
 });
+</script>
+
+
+<script>
+/* =========================================================
+   V10 EMERGENT SYMPHONIC ECOLOGY LAYER
+   Preserves existing controls and stained-glass ring.
+   Adds score-driven living fractal flow fields, harmonic fog,
+   recursive filaments, movement biomes, and Ode attractor.
+   ========================================================= */
+(function(){
+  function colorToThree(hex){
+    try { return new THREE.Color(hex); } catch(e){ return new THREE.Color('#ffffff'); }
+  }
+
+  function sampleBin(arr, t){
+    if(!arr || !arr.length) return 0.25;
+    const x = Math.max(0, Math.min(arr.length-1, t*(arr.length-1)));
+    const i = Math.floor(x), f = x-i;
+    return (arr[i]||0)*(1-f) + (arr[Math.min(i+1, arr.length-1)]||0)*f;
+  }
+
+  function makeGlowTexture(){
+    const c=document.createElement('canvas'); c.width=128; c.height=128;
+    const g=c.getContext('2d');
+    const grd=g.createRadialGradient(64,64,0,64,64,64);
+    grd.addColorStop(0,'rgba(255,255,255,1)');
+    grd.addColorStop(0.22,'rgba(255,255,255,.85)');
+    grd.addColorStop(0.48,'rgba(180,220,255,.38)');
+    grd.addColorStop(1,'rgba(0,0,0,0)');
+    g.fillStyle=grd; g.fillRect(0,0,128,128);
+    const tex=new THREE.CanvasTexture(c);
+    tex.needsUpdate=true;
+    return tex;
+  }
+
+  function setupEcology(){
+    const sceneEl=document.querySelector('a-scene');
+    if(!sceneEl || !window.THREE || !window.SCORE) return;
+
+    const sceneObj=sceneEl.object3D;
+    const root=new THREE.Group();
+    root.name='V10_Emergent_Symphonic_Ecology';
+    root.position.set(0, 5.5, -18);
+    sceneObj.add(root);
+
+    const glowTex=makeGlowTexture();
+    const families=(SCORE.families && SCORE.families.length)?SCORE.families:['strings','woodwinds','brass','percussion','voices'];
+    const familyColors=SCORE.colors || {
+      strings:'#00c8ff', woodwinds:'#39ff62', brass:'#ffc125', percussion:'#ff3b3b', voices:'#ff43ff'
+    };
+
+    const dynamicFields=[];
+
+    // 1) Living score-derived fractal point rivers.
+    families.forEach((fam, fi)=>{
+      const bins=(SCORE.bins && SCORE.bins[fam]) || [];
+      const N=1250;
+      const base=new Float32Array(N*3);
+      const pos=new Float32Array(N*3);
+      const col=new Float32Array(N*3);
+      const color=colorToThree(familyColors[fam] || '#ffffff');
+
+      for(let i=0;i<N;i++){
+        const t=i/(N-1);
+        const b=sampleBin(bins,t);
+        const spiral= t * Math.PI * 2 * (5.2 + fi*.72) + fi*1.35;
+        const r=10 + t*68 + b*17 + Math.sin(t*34+fi)*2.8;
+        const y=-10 + b*48 + Math.sin(t*26+fi)*7 + fi*2.2;
+        const x=Math.cos(spiral)*r + Math.sin(t*19+fi)*2.2;
+        const z=Math.sin(spiral)*r + Math.cos(t*23+fi)*2.2;
+        base[i*3]=x; base[i*3+1]=y; base[i*3+2]=z;
+        pos[i*3]=x; pos[i*3+1]=y; pos[i*3+2]=z;
+        const c=color.clone().lerp(new THREE.Color('#ffffff'), Math.min(.48,b*.85));
+        col[i*3]=c.r; col[i*3+1]=c.g; col[i*3+2]=c.b;
+      }
+
+      const geom=new THREE.BufferGeometry();
+      geom.setAttribute('position', new THREE.BufferAttribute(pos,3));
+      geom.setAttribute('color', new THREE.BufferAttribute(col,3));
+      const mat=new THREE.PointsMaterial({
+        size: fam==='voices'?1.35:(fam==='brass'?1.05:.82),
+        map:glowTex, vertexColors:true, transparent:true, opacity:.92,
+        blending:THREE.AdditiveBlending, depthWrite:false
+      });
+      const pts=new THREE.Points(geom,mat);
+      pts.name='living_'+fam+'_flow';
+      root.add(pts);
+      dynamicFields.push({fam,fi,bins,geom,pos,base,points:pts,mat});
+    });
+
+    // 2) Recursive branching harmonic filaments.
+    families.forEach((fam, fi)=>{
+      const bins=(SCORE.bins && SCORE.bins[fam]) || [];
+      const color=colorToThree(familyColors[fam] || '#ffffff');
+      const M=420;
+      const arr=new Float32Array(M*2*3);
+      const cols=new Float32Array(M*2*3);
+      for(let i=0;i<M;i++){
+        const t=(i+.5)/M;
+        const b=sampleBin(bins,t);
+        const spiral=t*Math.PI*2*(5.2+fi*.72)+fi*1.35;
+        const r=12+t*70+b*16;
+        const x=Math.cos(spiral)*r, z=Math.sin(spiral)*r, y=-9+b*45+Math.sin(t*26+fi)*8+fi*2;
+        const branch=(2.5 + b*18) * (i%3===0?1.35:.65);
+        const twist=spiral + Math.PI/2 + Math.sin(t*53+fi)*.9;
+        const ex=x+Math.cos(twist)*branch;
+        const ez=z+Math.sin(twist)*branch;
+        const ey=y+(Math.sin(t*61+fi)*.5+.8)*branch;
+        const k=i*6;
+        arr[k]=x; arr[k+1]=y; arr[k+2]=z;
+        arr[k+3]=ex; arr[k+4]=ey; arr[k+5]=ez;
+        const c1=color.clone().lerp(new THREE.Color('#ffffff'),.18);
+        const c2=color.clone().lerp(new THREE.Color('#fff7c0'),Math.min(.6,b));
+        cols[k]=c1.r; cols[k+1]=c1.g; cols[k+2]=c1.b;
+        cols[k+3]=c2.r; cols[k+4]=c2.g; cols[k+5]=c2.b;
+      }
+      const geom=new THREE.BufferGeometry();
+      geom.setAttribute('position',new THREE.BufferAttribute(arr,3));
+      geom.setAttribute('color',new THREE.BufferAttribute(cols,3));
+      const mat=new THREE.LineBasicMaterial({
+        vertexColors:true, transparent:true, opacity:.42,
+        blending:THREE.AdditiveBlending, depthWrite:false
+      });
+      const lines=new THREE.LineSegments(geom,mat);
+      lines.name='recursive_'+fam+'_filaments';
+      root.add(lines);
+    });
+
+    // 3) Harmonic pressure fog / movement biomes.
+    const fogGroup=new THREE.Group(); fogGroup.name='harmonic_pressure_volumes'; root.add(fogGroup);
+    const biomeDefs=[
+      ['I. D minor storm','#3344ff',-42,12,-28,18],
+      ['II. Scherzo crystal engine','#ff4058',38,18,-34,15],
+      ['III. Adagio liquid cathedral','#52fff0',-30,28,34,20],
+      ['IV. Finale choral sunrise','#ffe66d',35,34,28,24]
+    ];
+    biomeDefs.forEach((b,i)=>{
+      const geom=new THREE.SphereGeometry(b[5],32,18);
+      const mat=new THREE.MeshBasicMaterial({
+        color:b[1], transparent:true, opacity:.055, wireframe:false,
+        blending:THREE.AdditiveBlending, depthWrite:false, side:THREE.DoubleSide
+      });
+      const m=new THREE.Mesh(geom,mat);
+      m.position.set(b[2],b[3],b[4]);
+      m.name='movement_biome_'+i;
+      fogGroup.add(m);
+
+      const wire=new THREE.Mesh(geom.clone(),new THREE.MeshBasicMaterial({
+        color:b[1], transparent:true, opacity:.11, wireframe:true,
+        blending:THREE.AdditiveBlending, depthWrite:false
+      }));
+      wire.position.copy(m.position);
+      wire.scale.set(1.05,1.05,1.05);
+      fogGroup.add(wire);
+    });
+
+    // 4) Ode-to-Joy attractor: central golden crystallizing helix.
+    const odeGroup=new THREE.Group(); odeGroup.name='ode_to_joy_attractor_crystal'; root.add(odeGroup);
+    const helixPts=[];
+    for(let i=0;i<720;i++){
+      const t=i/719;
+      const a=t*Math.PI*2*7.2;
+      const rr=2.5+t*14;
+      helixPts.push(new THREE.Vector3(Math.cos(a)*rr, -12+t*62+Math.sin(a*1.5)*2.2, Math.sin(a)*rr));
+    }
+    const curve=new THREE.CatmullRomCurve3(helixPts);
+    const tube=new THREE.TubeGeometry(curve,720,.18,8,false);
+    const tubeMat=new THREE.MeshBasicMaterial({
+      color:'#ffe67a', transparent:true, opacity:.72,
+      blending:THREE.AdditiveBlending, depthWrite:false
+    });
+    const tubeMesh=new THREE.Mesh(tube,tubeMat);
+    odeGroup.add(tubeMesh);
+
+    for(let i=0;i<28;i++){
+      const t=i/27, a=t*Math.PI*2*7.2, rr=2.5+t*14;
+      const g=new THREE.IcosahedronGeometry(.9+t*1.1,1);
+      const mat=new THREE.MeshBasicMaterial({
+        color:i%3===0?'#ffffff':(i%3===1?'#ffe67a':'#ff62ff'),
+        transparent:true, opacity:.45, wireframe:true,
+        blending:THREE.AdditiveBlending, depthWrite:false
+      });
+      const m=new THREE.Mesh(g,mat);
+      m.position.set(Math.cos(a)*rr, -12+t*62+Math.sin(a*1.5)*2.2, Math.sin(a)*rr);
+      odeGroup.add(m);
+    }
+
+    // 5) Transparent topological membranes.
+    const membraneGroup=new THREE.Group(); membraneGroup.name='morphing_topological_membranes'; root.add(membraneGroup);
+    for(let i=0;i<5;i++){
+      const geom=new THREE.TorusKnotGeometry(18+i*9, .32+i*.08, 220, 12, 2+i, 3+i);
+      const mat=new THREE.MeshBasicMaterial({
+        color: familyColors[families[i%families.length]] || '#88ccff',
+        transparent:true, opacity:.16, wireframe:true,
+        blending:THREE.AdditiveBlending, depthWrite:false
+      });
+      const mesh=new THREE.Mesh(geom,mat);
+      mesh.position.set(0,10+i*3,0);
+      mesh.scale.set(1, .55+i*.08, 1);
+      membraneGroup.add(mesh);
+    }
+
+    // Animation: phrase-scale breathing, non-Euclidean drift, score-driven field motion.
+    const clock=new THREE.Clock();
+    function animate(){
+      const time=clock.getElapsedTime();
+      const phrase=Math.sin(time*.22)*.5+.5;
+      const breath=1 + Math.sin(time*.18)*.045;
+      root.scale.set(breath, 1+Math.sin(time*.13)*.055, breath);
+      root.rotation.y += .00085;
+      root.rotation.x = Math.sin(time*.07)*.035;
+
+      dynamicFields.forEach(f=>{
+        const N=f.base.length/3;
+        for(let i=0;i<N;i++){
+          const ix=i*3;
+          const t=i/(N-1);
+          const b=sampleBin(f.bins,t);
+          const wave=Math.sin(time*(.65+f.fi*.11)+t*38+f.fi)*(.8+b*4.8);
+          const shear=Math.cos(time*.31+t*17+f.fi)*(.4+b*2.5);
+          f.pos[ix]=f.base[ix] + Math.cos(t*21+time*.37+f.fi)*shear;
+          f.pos[ix+1]=f.base[ix+1] + wave + Math.sin(time*.18+t*9)*phrase*3.0;
+          f.pos[ix+2]=f.base[ix+2] + Math.sin(t*25+time*.29+f.fi)*shear;
+        }
+        f.geom.attributes.position.needsUpdate=true;
+        f.points.rotation.y += .00018*(f.fi+1);
+        f.mat.opacity=.72 + phrase*.22;
+      });
+
+      fogGroup.children.forEach((m,i)=>{
+        m.rotation.y += .0015*(i+1);
+        m.rotation.x += .00065*(i+1);
+        const s=1+Math.sin(time*.25+i)*.08;
+        m.scale.set(s,1+Math.cos(time*.19+i)*.12,s);
+        if(m.material) m.material.opacity = (m.material.wireframe?.11:.05) + phrase*.035;
+      });
+
+      odeGroup.rotation.y -= .0022;
+      odeGroup.scale.setScalar(1 + Math.sin(time*.32)*.06);
+      odeGroup.children.forEach((m,i)=>{
+        m.rotation.x += .006 + i*.0003;
+        m.rotation.y += .008 + i*.0002;
+      });
+
+      membraneGroup.children.forEach((m,i)=>{
+        m.rotation.x += .0009*(i+1);
+        m.rotation.y -= .0012*(i+1);
+        m.rotation.z += .00055*(i+1);
+        const s=1+Math.sin(time*.21+i)*.04;
+        m.scale.x=s; m.scale.z=s; m.scale.y=.55+i*.08+Math.cos(time*.17+i)*.04;
+      });
+
+      requestAnimationFrame(animate);
+    }
+    animate();
+
+    const readout=document.querySelector('#readout');
+    if(readout){
+      readout.textContent='v10 emergent ecology loaded — living fractal flow fields + huge stained-glass ring + corrected controls';
+    }
+  }
+
+  if(document.readyState==='complete') setupEcology();
+  else window.addEventListener('load',()=>setTimeout(setupEcology,500));
+})();
 </script>
 
 </body>
